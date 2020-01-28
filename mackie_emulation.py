@@ -1,3 +1,4 @@
+import time
 import tkinter
 import rtmidi
 from functools import partial
@@ -27,12 +28,12 @@ def setup_midi_callbacks(_num_strips):
     }
 
 
-def draw_vpot_window(_main_window, _surface_state, _strip_index):
+def draw_vpot_window(_main_window, _surface_state, _midi_out_handler, _strip_index):
     vpot = tkinter.PanedWindow(_main_window)
     vpot.grid(row=0, column=_strip_index)
     slider = tkinter.Scale(vpot, orient=tkinter.VERTICAL, variable=_surface_state["vpot_values"][_strip_index])
     slider.grid(row=0, column=0)
-    button = tkinter.Button(vpot, text="Press vpot")
+    button = tkinter.Button(vpot, text="Press vpot", command=lambda: _midi_out_handler.vpot_clicked(_strip_index))
     button.grid(row=1, column=0)
 
 
@@ -47,8 +48,8 @@ def draw_scribble_script(_main_window, _surface_state, _strip_index):
     line2.grid(row=1, column=0)
 
 
-def draw_strip(_main_window, _surface_state, _strip_index):
-    draw_vpot_window(_main_window, _surface_state, _strip_index)
+def draw_strip(_main_window, _surface_state, _midi_out_handler, _strip_index):
+    draw_vpot_window(_main_window, _surface_state, _midi_out_handler, _strip_index)
     draw_scribble_script(_main_window, _surface_state, _strip_index)
 
 
@@ -82,7 +83,7 @@ def draw_assign_section(_main_window, _surface_state, _midi_out_handler, draw_in
 def draw_ui(_main_window, _surface_state, _midi_out_handler):
     _num_strips = len(_surface_state["vpot_values"])
     for s in range(0, _num_strips):
-        draw_strip(_main_window, _surface_state, s)
+        draw_strip(_main_window, _surface_state, _midi_out_handler, s)
 
     draw_assign_section(_main_window, _surface_state, _midi_out_handler, num_strips)
 
@@ -115,7 +116,7 @@ def update_display(_position, _hex_codes, _surface_state):
 def handle_sys_ex(_message, _surface_state, _midi_out_handler):
     # print("handle_sys_ex:", _message)
     if _message[0:5] != [0xF0, 0x00, 0x00, 0x66, 0x14]:
-        return
+        return False
 
     if _message[5:] == [0x00, 0xF7]:
         sysex_message = [0x01]
@@ -131,18 +132,26 @@ def handle_sys_ex(_message, _surface_state, _midi_out_handler):
         sysex_message.extend(_challenge_bytes)
         _midi_out_handler.send_midi_sysex(sysex_message)
 
-        return
+        return True
 
     if _message[5] == 0x12:
         position = _message[6]
         hex_codes = _message[7:-1]
-        update_display(position, hex_codes, _surface_state)
+        update_display(position, hex_codes, _surface_state)        
+        return True
+    
+    return False
+
+
+def handle_midi(_message, _surface_state, _midi_out_handler):
+    pass
 
 
 def handle_mackie_in(_surface_state, _midi_out_handler, event, data=None):
     _message, _deltatime = event
     # print("%r" % (_message))
-    handle_sys_ex(_message, _surface_state, _midi_out_handler)
+    if not handle_sys_ex(_message, _surface_state, _midi_out_handler):
+        handle_midi(_message, _surface_state, _midi_out_handler)
 
 
 class MidiOutputHandler(object):
@@ -154,6 +163,11 @@ class MidiOutputHandler(object):
         header = [0xF0, 0x00, 0x00, 0x66, 0x14]
         _final_message = header + _sysex + [0xF7]
         self._midi_out.send_message(_final_message)
+
+    def vpot_clicked(self, _strip_index):
+        note = 0x20 + _strip_index
+        self._midi_out.send_message([NOTE_ON, note, 127])
+        self._midi_out.send_message([NOTE_OFF, note, 64])
 
     def set_subview_mode(self, _subview_type):
         if _subview_type == "Track":
