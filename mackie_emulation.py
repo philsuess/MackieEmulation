@@ -80,12 +80,22 @@ def draw_assign_section(_main_window, _surface_state, _midi_out_handler, draw_in
     inst_view.grid(row=0, column=5)
 
 
+def draw_cursor_keys(_main_window, _midi_out_handler, _columns_used_in_main):
+    cursors = tkinter.PanedWindow(_main_window)
+    cursors.grid(row=2, column=0, columnspan=_columns_used_in_main)
+    left = tkinter.Button(cursors, text="<", command=lambda: _midi_out_handler.handle_cursor("left"))
+    left.grid(row=0, column=0)
+    right = tkinter.Button(cursors, text=">", command=lambda: _midi_out_handler.handle_cursor("right"))
+    right.grid(row=0, column=1)
+
+
 def draw_ui(_main_window, _surface_state, _midi_out_handler):
     _num_strips = len(_surface_state["vpot_values"])
     for s in range(0, _num_strips):
         draw_strip(_main_window, _surface_state, _midi_out_handler, s)
 
     draw_assign_section(_main_window, _surface_state, _midi_out_handler, num_strips)
+    draw_cursor_keys(_main_window, _midi_out_handler, num_strips + 1)
 
 
 def update_display(_position, _hex_codes, _surface_state):
@@ -168,6 +178,18 @@ class MidiOutputHandler(object):
         note = 0x20 + _strip_index
         self._midi_out.send_message([NOTE_ON, note, 127])
         self._midi_out.send_message([NOTE_OFF, note, 64])
+
+    def handle_cursor(self, _cursor_clicked):
+        if _cursor_clicked == "left":
+            note = 0x62
+            self._midi_out.send_message([NOTE_ON, note, 127])
+            self._midi_out.send_message([NOTE_OFF, note, 64])
+        elif _cursor_clicked == "right":
+            note = 0x63
+            self._midi_out.send_message([NOTE_ON, note, 127])
+            self._midi_out.send_message([NOTE_OFF, note, 64])
+        else:
+            print("Unknown cursor button clicked")
 
     def set_subview_mode(self, _subview_type):
         if _subview_type == "Track":
