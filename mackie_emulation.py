@@ -10,7 +10,7 @@ def setup_midi_callbacks(_num_strips):
     display_first_lines = []
     display_second_lines = []
 
-    for s in range(1, _num_strips):
+    for s in range(0, _num_strips):
         vpot = tkinter.DoubleVar()
         vpot.set(23)
         vpot_values.append(vpot)
@@ -40,10 +40,10 @@ def draw_vpot_window(_main_window, _surface_state, _midi_out_handler, _strip_ind
 def draw_scribble_script(_main_window, _surface_state, _strip_index):
     scribble = tkinter.PanedWindow(_main_window)
     scribble.grid(row=1, column=_strip_index)
-    line1 = tkinter.Label(scribble, height=1, width=12,
+    line1 = tkinter.Label(scribble, height=1, width=15,
                           textvariable=_surface_state["display_first_lines"][_strip_index])
     line1.grid(row=0, column=0)
-    line2 = tkinter.Label(scribble, height=1, width=12,
+    line2 = tkinter.Label(scribble, height=1, width=15,
                           textvariable=_surface_state["display_second_lines"][_strip_index])
     line2.grid(row=1, column=0)
 
@@ -94,7 +94,7 @@ def draw_ui(_main_window, _surface_state, _midi_out_handler):
     for s in range(0, _num_strips):
         draw_strip(_main_window, _surface_state, _midi_out_handler, s)
 
-    draw_assign_section(_main_window, _surface_state, _midi_out_handler, num_strips)
+    draw_assign_section(_main_window, _surface_state, _midi_out_handler, num_strips + 1)
     draw_cursor_keys(_main_window, _midi_out_handler, num_strips + 1)
 
 
